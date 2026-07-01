@@ -1,0 +1,14 @@
+title = "gitleaks config - outlook-mail-rescue"
+
+# Start from gitleaks' built-in rules, then allowlist the files that intentionally
+# ship placeholder values. Real secrets never live in the repo: the local config
+# (config.ps1), session notes (handoff.md), and run artifacts (*.pst/*.ost/logs)
+# are all gitignored.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Example config: placeholder values only"
+paths = [
+  '''config\.example\.ps1''',
+]

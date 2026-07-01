@@ -1,0 +1,25 @@
+# Local config (may hold paths / converter locations)
+config.ps1
+
+# Local session/working notes (may reference internal mailbox data) - never publish
+handoff.md
+
+# Run artifacts
+logs/
+*.log
+*.pst
+*.ost
+
+# Office Deployment Tool payload (downloaded at runtime, large)
+tools/odt/
+
+# v2 build artifacts
+tools/ost-extract/build/
+tools/ost-extract/dist/
+*.spec
+
+# Editor / OS
+.vs/
+*.swp
+Thumbs.db
+desktop.ini
