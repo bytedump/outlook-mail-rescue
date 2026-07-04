@@ -76,6 +76,20 @@ function Get-IdentityPstFileName {
     return "$token.pst"
 }
 
+# Dated PST file name from a detected/typed identity: <identity-token>.DD-MM-YYYY.pst
+# (day-month-year). Pass -DateStamp for deterministic tests; defaults to today otherwise,
+# so the name is unique per day and a same-day export never silently overwrites an earlier
+# one (the caller still guards against a same-day collision). Reuses Resolve-IdentityToken
+# so the token rules match Get-IdentityPstFileName; returns $null on an unusable identity.
+# Pure given a DateStamp.
+function Get-DatedPstFileName {
+    param([string]$Identity, [string]$DateStamp, [int]$MaxLength = 64)
+    $token = Resolve-IdentityToken -Identity $Identity -MaxLength $MaxLength
+    if (-not $token) { return $null }
+    if ([string]::IsNullOrWhiteSpace($DateStamp)) { $DateStamp = Get-Date -Format 'dd-MM-yyyy' }
+    return "$token.$DateStamp.pst"
+}
+
 # Gate the export on a real, usable identity in the name field (guard #6). Rejects blank,
 # the cue/placeholder text, the banned literal 'user' (the old fallback), the in-progress
 # 'Detecting...' sentinel, and any value that yields no usable file name (e.g. '.'/'..').

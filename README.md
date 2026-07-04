@@ -101,14 +101,19 @@ No build step — the PowerShell modules are dot-sourced at runtime.
 
 Double-click **`run.bat`** (or run it from a terminal). It launches the GUI non-elevated.
 
-1. Review the **Detected** line (Active flavor, classic yes/no + bitness, MAPI profile).
-2. Enter the **Mailbox / username** (names the output PST only) and confirm the **Output folder**.
-3. **Scan C:\** — approve the single UAC prompt; review the found `.pst` / `.ost` files.
-4. Choose an action:
-   - A PST was found → **Copy selected PST** to the output folder.
-   - No PST → **Export mailbox to PST** (detects Outlook, switches new→classic if needed, waits
-     for sync, then exports everything and validates the counts).
-   - Only an orphaned OST → it is reported (v2 will convert it).
+1. Review the **Detected** line (Active flavor, classic yes/no + bitness, MAPI profile). The owner is
+   auto-detected from classic Outlook on startup and pre-fills the **Mailbox / username**; press
+   **Detect owner** to retry, or type it in manually.
+2. Confirm the **Mailbox / username** (names the output PST) and the **Output folder**.
+3. **Scan & Export** — one button does both: it scans `C:\` for existing `.pst` / `.ost` files *and*
+   runs a fresh full export in the same run, whether or not a PST already exists. Confirm once (owner
+   + mailbox + computer + target PST), approve the single UAC prompt for the scan, and sign in if
+   Outlook prompts. From there it is hands-off: it auto-switches new→classic when needed (a revert is
+   offered at the end), copies the whole profile into a new Unicode PST, and validates the counts.
+4. The export PST is named **`owner@company.com.DD-MM-YYYY.pst`** — a same-day re-run gets an extra
+   time suffix, so an earlier backup is never overwritten. Scanned files are listed below:
+   **Copy selected PST** copies an already-existing PST to the output folder; an orphaned OST is
+   reported only (conversion is on the v2 roadmap).
 5. Collect the PST and the run log (under `%LOCALAPPDATA%\OutlookMailRescue\logs`).
 
 ## 🧠 How it works (architecture)

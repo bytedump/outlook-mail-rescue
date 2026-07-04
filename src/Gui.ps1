@@ -363,33 +363,21 @@ public static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, str
     $form.Controls.Add($lblStatus)
 
     # --- Action buttons ---
-    $btnScan = New-Object System.Windows.Forms.Button
-    $btnScan.Text = 'Scan C:\ for PST/OST'; $btnScan.Location = New-Object System.Drawing.Point(24, 294)
-    $btnScan.Size = New-Object System.Drawing.Size(170, 34)
-    Set-FlatButton $btnScan $clrCard $clrAccent $clrAccentLt $clrBorder 1
-    $form.Controls.Add($btnScan)
-
-    $btnExport = New-Object System.Windows.Forms.Button
-    $btnExport.Text = 'Export mailbox to PST'; $btnExport.Location = New-Object System.Drawing.Point(202, 294)
-    $btnExport.Size = New-Object System.Drawing.Size(180, 34)
-    Set-FlatButton $btnExport $clrAccent ([System.Drawing.Color]::White) $clrAccentDk $clrAccent 0
-    $form.Controls.Add($btnExport)
-    $btnExport.Enabled = $false   # guard #6: enabled only once Test-ValidExportName passes
+    $btnScanExport = New-Object System.Windows.Forms.Button
+    $btnScanExport.Text = 'Scan & Export'; $btnScanExport.Location = New-Object System.Drawing.Point(24, 294)
+    $btnScanExport.Size = New-Object System.Drawing.Size(200, 34)
+    Set-FlatButton $btnScanExport $clrAccent ([System.Drawing.Color]::White) $clrAccentDk $clrAccent 0
+    $form.Controls.Add($btnScanExport)
+    $btnScanExport.Enabled = $false   # guard #6: enabled only once Test-ValidExportName passes
 
     $btnCopy = New-Object System.Windows.Forms.Button
-    $btnCopy.Text = 'Copy selected PST'; $btnCopy.Location = New-Object System.Drawing.Point(390, 294)
+    $btnCopy.Text = 'Copy selected PST'; $btnCopy.Location = New-Object System.Drawing.Point(234, 294)
     $btnCopy.Size = New-Object System.Drawing.Size(160, 34)
     Set-FlatButton $btnCopy $clrCard $clrAccent $clrAccentLt $clrBorder 1
     $form.Controls.Add($btnCopy)
 
-    $btnOst = New-Object System.Windows.Forms.Button
-    $btnOst.Text = 'Convert selected OST'; $btnOst.Location = New-Object System.Drawing.Point(558, 294)
-    $btnOst.Size = New-Object System.Drawing.Size(168, 34)
-    Set-FlatButton $btnOst $clrCard $clrAccent $clrAccentLt $clrBorder 1
-    $form.Controls.Add($btnOst)
-
     $btnCancel = New-Object System.Windows.Forms.Button
-    $btnCancel.Text = 'Cancel scan'; $btnCancel.Location = New-Object System.Drawing.Point(734, 294)
+    $btnCancel.Text = 'Cancel scan'; $btnCancel.Location = New-Object System.Drawing.Point(404, 294)
     $btnCancel.Size = New-Object System.Drawing.Size(120, 34); $btnCancel.Enabled = $false
     Set-FlatButton $btnCancel $clrCard $clrMuted $clrAccentLt $clrBorder 1
     $form.Controls.Add($btnCancel)
@@ -440,8 +428,7 @@ public static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, str
     }
 
     function Set-Busy { param([bool]$Busy, [string]$Style = 'Marquee')
-        $btnScan.Enabled = -not $Busy; $btnExport.Enabled = -not $Busy
-        $btnCopy.Enabled = -not $Busy; $btnOst.Enabled = -not $Busy
+        $btnScanExport.Enabled = -not $Busy; $btnCopy.Enabled = -not $Busy
         $bar.Style = if ($Busy) { $Style } else { 'Blocks' }
         if (-not $Busy) { $bar.Value = 0 }
     }
@@ -465,27 +452,8 @@ public static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, str
     # Pure Test-ValidExportName decides; Export stays disabled until the name would yield a
     # valid PST file name, never the old 'user' fallback or the cue placeholder.
     function Update-ExportEnabled {
-        $btnExport.Enabled = [bool](Test-ValidExportName -Name $txtUser.Text -CueText $script:MrMailboxCue)
+        $btnScanExport.Enabled = [bool](Test-ValidExportName -Name $txtUser.Text -CueText $script:MrMailboxCue)
     }
-
-    # --- Scan ---
-    $btnScan.Add_Click({
-        if ($script:MrScan.Active) { return }
-        $roots = @($cfg.ScanRoots); if (-not $roots) { $roots = @('C:\') }
-        Write-Log INFO "Requesting elevated scan of: $($roots -join ', ')"
-        try {
-            $scanInfo = Start-ElevatedScan -ScriptPath $ScriptPath -Roots $roots
-        } catch {
-            [System.Windows.Forms.MessageBox]::Show("Elevation was cancelled or failed:`n$($_.Exception.Message)", 'Scan', 'OK', 'Warning') | Out-Null
-            return
-        }
-        $list.Items.Clear()
-        $script:MrScan.Info = $scanInfo; $script:MrScan.Active = $true
-        $script:MrScan.StartTime = Get-Date
-        $btnCancel.Enabled = $true
-        Set-Busy $true 'Marquee'
-        $lblLine.Text = 'Scanning C:\ (elevated)...'
-    })
 
     $btnCancel.Add_Click({
         if ($script:MrScan.Active -and $script:MrScan.Info) {
@@ -494,40 +462,16 @@ public static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, str
         }
     })
 
-    # --- Export decision tree ---
-    $btnExport.Add_Click({
-        if ($script:MrProbe.Active) { [System.Windows.Forms.MessageBox]::Show('Owner detection is still running. Wait for it to finish.', 'Export', 'OK', 'Warning') | Out-Null; return }
+    # --- Scan & Export: one confirmation, then a fresh dated export + a disk scan run together ---
+    $btnScanExport.Add_Click({
+        if ($script:MrScan.Active -or $script:MrExport.Active) { return }
+        if ($script:MrProbe.Active) { [System.Windows.Forms.MessageBox]::Show('Owner detection is still running. Wait for it to finish.', 'Scan & Export', 'OK', 'Warning') | Out-Null; return }
         $user = $txtUser.Text.Trim()
-        if (-not $user) { [System.Windows.Forms.MessageBox]::Show('Enter the target username first.', 'Export', 'OK', 'Warning') | Out-Null; return }
+        if (-not (Test-ValidExportName -Name $user -CueText $script:MrMailboxCue)) {
+            [System.Windows.Forms.MessageBox]::Show('Enter or detect a valid mailbox identity first.', 'Scan & Export', 'OK', 'Warning') | Out-Null; return
+        }
         $outDir = $txtOut.Text.Trim()
-        if (-not $outDir) { [System.Windows.Forms.MessageBox]::Show('Choose an output folder.', 'Export', 'OK', 'Warning') | Out-Null; return }
-
-        # Guard #12: never write a multi-GB PST into a OneDrive-synced folder; the sync client
-        # can lock or upload-corrupt it mid-write. Warn and let the tech pick a local folder.
-        if (Test-PathUnderOneDrive -Path $outDir -OneDriveRoots (Get-OneDriveRoots)) {
-            $od = [System.Windows.Forms.MessageBox]::Show(
-                "The output folder is inside OneDrive:`n$outDir`n`nOneDrive sync can lock or corrupt a large PST while it is being written. Choose a local folder (e.g. C:\Exports) instead.`n`nExport here anyway?",
-                'OneDrive output folder', 'YesNo', 'Warning')
-            if ($od -ne 'Yes') { return }
-        }
-
-        # Guard #4: final identity confirmation before any export. Echo owner + mailbox +
-        # machine + target so the tech can catch a wrong profile or wrong PC before a multi-GB
-        # write. The export runspace independently re-reads CurrentUser once Outlook is logged
-        # on and re-checks this identity (Compare-ReadbackIdentity) before copying.
-        $detected = $script:MrProbe.LastDetected
-        $ownerName = if ($detected -and $detected.PrimarySmtp -and
-            [string]::Equals([string]$detected.PrimarySmtp, $user, [System.StringComparison]::OrdinalIgnoreCase) -and
-            $detected.DisplayName) { [string]$detected.DisplayName } else { '(entered manually)' }
-        $previewName = Get-IdentityPstFileName -Identity $user
-        if (-not $previewName) {
-            [System.Windows.Forms.MessageBox]::Show("Could not derive a PST file name from '$user'. Enter a valid mailbox identity.", 'Export', 'OK', 'Warning') | Out-Null
-            return
-        }
-        $confirm = [System.Windows.Forms.MessageBox]::Show(
-            "Export this mailbox to a PST backup?`n`nOwner:    $ownerName`nMailbox:  $user`nComputer: $env:COMPUTERNAME`nSave to:  $(Join-Path $outDir $previewName)`n`nThe entire classic-Outlook profile on this machine will be copied.",
-            'Confirm export', 'YesNo', 'Question')
-        if ($confirm -ne 'Yes') { return }
+        if (-not $outDir) { [System.Windows.Forms.MessageBox]::Show('Choose an output folder.', 'Scan & Export', 'OK', 'Warning') | Out-Null; return }
 
         $live = Get-OutlookInfo
         if (-not $live.ClassicInstalled) {
@@ -537,29 +481,55 @@ public static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, str
             return
         }
 
-        # New active / preference -> offer to switch to classic (backup + later revert).
-        $script:MrExport.Revert = $null
-        if ($live.ActiveFlavor -eq 'new' -or $live.UseNewOutlook -eq 1) {
-            $ans = [System.Windows.Forms.MessageBox]::Show(
-                "The user is on the new Outlook. Switch them to classic Outlook for the export? (backed up; you can revert afterward)",
-                'Switch to classic', 'YesNoCancel', 'Question')
-            if ($ans -eq 'Cancel') { return }
-            if ($ans -eq 'Yes') { $script:MrExport.Revert = Switch-ToClassicOutlook }
-        }
-
-        # Name the PST from the identity itself: full primary SMTP, no stamp (guard #6 /
-        # project decision). $null -> refuse rather than fall back to a generic 'user.pst'.
-        $fileName = Get-IdentityPstFileName -Identity $user
+        # Name the PST from the identity + today's date: owner@company.DD-MM-YYYY.pst. A same-day
+        # re-run gets an extra time suffix so an earlier backup is never overwritten (guard #10).
+        $stamp = Get-Date -Format 'dd-MM-yyyy'
+        $fileName = Get-DatedPstFileName -Identity $user -DateStamp $stamp
         if (-not $fileName) {
-            [System.Windows.Forms.MessageBox]::Show("Could not derive a PST file name from '$user'. Enter a valid mailbox identity.", 'Export', 'OK', 'Warning') | Out-Null
+            [System.Windows.Forms.MessageBox]::Show("Could not derive a PST file name from '$user'. Enter a valid mailbox identity.", 'Scan & Export', 'OK', 'Warning') | Out-Null
             return
         }
         $pstPath = Join-Path $outDir $fileName
         if (Test-Path $pstPath) {
-            [System.Windows.Forms.MessageBox]::Show("Target already exists:`n$pstPath", 'Export', 'OK', 'Warning') | Out-Null
-            return
+            $fileName = Get-DatedPstFileName -Identity $user -DateStamp ("$stamp-" + (Get-Date -Format 'HHmmss'))
+            $pstPath = Join-Path $outDir $fileName
         }
 
+        # Guard #4: the single identity confirmation before any export. Echo owner + mailbox +
+        # machine + target so the tech catches a wrong profile or wrong PC before a multi-GB write.
+        # Fold the OneDrive (guard #12) and new->classic notices in here so the run needs no further
+        # dialogs. The export runspace independently re-reads CurrentUser once Outlook is logged on
+        # and re-checks this identity (Compare-ReadbackIdentity) before copying.
+        $detected = $script:MrProbe.LastDetected
+        $ownerName = if ($detected -and $detected.PrimarySmtp -and
+            [string]::Equals([string]$detected.PrimarySmtp, $user, [System.StringComparison]::OrdinalIgnoreCase) -and
+            $detected.DisplayName) { [string]$detected.DisplayName } else { '(entered manually)' }
+        $switching = ($live.ActiveFlavor -eq 'new' -or $live.UseNewOutlook -eq 1)
+        $msg = "Scan this PC and export the mailbox to a fresh PST backup?`n`nOwner:    $ownerName`nMailbox:  $user`nComputer: $env:COMPUTERNAME`nSave to:  $pstPath`n`nThe entire classic-Outlook profile on this machine will be copied, and C:\ will be scanned for existing PST/OST files."
+        if (Test-PathUnderOneDrive -Path $outDir -OneDriveRoots (Get-OneDriveRoots)) {
+            $msg += "`n`nNOTE: the output folder is inside OneDrive. Sync can lock or corrupt a large PST while it is written - a local folder (e.g. C:\Exports) is safer."
+        }
+        if ($switching) {
+            $msg += "`n`nNOTE: the user is on new Outlook. It will be switched to classic for the export (backed up; a revert is offered at the end)."
+        }
+        $confirm = [System.Windows.Forms.MessageBox]::Show($msg, 'Confirm Scan & Export', 'YesNo', 'Question')
+        if ($confirm -ne 'Yes') { return }
+
+        # From here on: no more app dialogs until the run finishes - only the OS UAC prompt for the
+        # elevated scan and any Outlook sign-in prompt remain, which cannot be suppressed.
+
+        # Auto-switch new -> classic (backed up; the timer offers a revert when the export ends).
+        $script:MrExport.Revert = $null
+        if ($switching) { $script:MrExport.Revert = Switch-ToClassicOutlook }
+
+        # Guard #4b: only enforce the in-runspace identity re-check when the field equals the
+        # auto-detected primary SMTP; a manually typed (non-SMTP) name has nothing reliable to
+        # compare, so pass empty to SKIP rather than false-abort.
+        $expectedSmtp = ''
+        if ($detected -and $detected.PrimarySmtp -and
+            [string]::Equals([string]$detected.PrimarySmtp, $user, [System.StringComparison]::OrdinalIgnoreCase)) {
+            $expectedSmtp = [string]$detected.PrimarySmtp
+        }
         $cfgHash = @{
             IncludeArchive = [bool]$cfg.IncludeArchive
             IncludeSharedMailboxes = [bool]$cfg.IncludeSharedMailboxes
@@ -567,22 +537,30 @@ public static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, str
         }
         Write-Log INFO "Case: technician='$env:USERNAME' user='$user'"
         Write-Log INFO "Starting export -> $pstPath"
-        # Guard #4b: only enforce the in-runspace identity re-check when we have a trustworthy SMTP
-        # for this export - i.e. the field equals the auto-detected primary SMTP. For a manually
-        # typed (non-SMTP) name we have nothing reliable to compare, so pass empty to SKIP the
-        # check rather than false-abort. Reuses $detected from the confirm step above.
-        $expectedSmtp = ''
-        if ($detected -and $detected.PrimarySmtp -and
-            [string]::Equals([string]$detected.PrimarySmtp, $user, [System.StringComparison]::OrdinalIgnoreCase)) {
-            $expectedSmtp = [string]$detected.PrimarySmtp
-        }
+
+        # Export is the primary deliverable: start it first so a cancelled scan UAC never aborts it.
         $script:MrExport.Handle = Start-ExportRunspace -ScriptPath $ScriptPath -PstPath $pstPath `
             -ConfigHash $cfgHash -Ui $script:MrUi -LogFile $script:MrLogFile `
             -WaitForSync $true -SyncTimeoutMinutes ([int]$cfg.SyncTimeoutMinutes) `
             -ExpectedSmtp $expectedSmtp
         $script:MrExport.Active = $true
+
+        # Then kick off the disk scan. If elevation is cancelled or fails, log and continue - the
+        # export still runs; the scan is auxiliary (it only finds already-existing PST/OST files).
+        $roots = @($cfg.ScanRoots); if (-not $roots) { $roots = @('C:\') }
+        try {
+            Write-Log INFO "Requesting elevated scan of: $($roots -join ', ')"
+            $scanInfo = Start-ElevatedScan -ScriptPath $ScriptPath -Roots $roots
+            $list.Items.Clear()
+            $script:MrScan.Info = $scanInfo; $script:MrScan.Active = $true
+            $script:MrScan.StartTime = Get-Date
+            $btnCancel.Enabled = $true
+        } catch {
+            Write-Log WARN "Disk scan skipped (elevation cancelled or failed): $($_.Exception.Message). Export continues."
+        }
+
         Set-Busy $true 'Marquee'
-        $lblLine.Text = 'Exporting mailbox... (sign in if Outlook prompts)'
+        $lblLine.Text = if ($script:MrScan.Active) { 'Scanning + exporting... (sign in if Outlook prompts)' } else { 'Exporting mailbox... (sign in if Outlook prompts)' }
     })
 
     # --- Copy a found PST ---
@@ -601,15 +579,6 @@ public static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, str
             Write-Log ERROR "Copy failed: $($_.Exception.Message)"
             [System.Windows.Forms.MessageBox]::Show("Copy failed:`n$($_.Exception.Message)", 'Copy', 'OK', 'Error') | Out-Null
         } finally { $form.Cursor = 'Default'; $lblLine.Text = 'Ready.' }
-    })
-
-    # --- OST: v1 guidance (conversion is roadmap v2) ---
-    $btnOst.Add_Click({
-        $rec = Get-SelectedRecord
-        if (-not $rec -or $rec.Type -ne 'OST') { [System.Windows.Forms.MessageBox]::Show('Select an OST row first.', 'Convert OST', 'OK', 'Warning') | Out-Null; return }
-        [System.Windows.Forms.MessageBox]::Show(
-            "OST handling:`n`n- If this OST belongs to the user's live account, use 'Export mailbox to PST' instead (it captures the cached mailbox).`n- An ORPHANED OST (no account/profile) cannot be opened by Outlook directly. FOSS conversion to PST is on the v2 roadmap.`n`nFile: $($rec.Path)",
-            'Convert OST', 'OK', 'Information') | Out-Null
     })
 
     # --- One timer drives both the scan poll and the export finalize + log drain ---
@@ -658,7 +627,7 @@ public static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, str
                     try { $h.Runspace.Close() } catch { }
                     try { $h.Ps.Dispose() } catch { }
                 }
-                Set-Busy $false
+                if (-not ($script:MrScan.Active -or $script:MrExport.Active)) { Set-Busy $false }
                 if ($res -and $res.Success) {
                     # Guard #13: title from the classified outcome - "Export complete" only when the
                     # whole mailbox was captured, else "Export incomplete" + the specific reasons, so
@@ -710,10 +679,10 @@ public static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, str
                     $lblLine.Text = "Scan done: $($result.Count) file(s) found in $elTxt."
                 }
                 $script:MrScan.Active = $false; $btnCancel.Enabled = $false
-                Set-Busy $false
+                if (-not ($script:MrScan.Active -or $script:MrExport.Active)) { Set-Busy $false }
             } elseif ($si.Process -and $si.Process.HasExited) {
                 $script:MrScan.Active = $false; $btnCancel.Enabled = $false
-                Set-Busy $false
+                if (-not ($script:MrScan.Active -or $script:MrExport.Active)) { Set-Busy $false }
                 $lblLine.Text = 'Scan ended without results.'
             }
         }

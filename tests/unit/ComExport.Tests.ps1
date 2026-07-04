@@ -77,6 +77,31 @@ Describe 'Get-IdentityPstFileName' {
     }
 }
 
+Describe 'Get-DatedPstFileName' {
+    It 'appends the day-month-year stamp before .pst' {
+        Get-DatedPstFileName 'owner@company.com' -DateStamp '04-07-2026' |
+            Should -BeExactly 'owner@company.com.04-07-2026.pst'
+    }
+
+    It 'returns $null for no usable identity (parity with Get-IdentityPstFileName)' -ForEach @(
+        @{ in = '' }
+        @{ in = '   ' }
+        @{ in = '..' }
+    ) {
+        Get-DatedPstFileName $in -DateStamp '04-07-2026' | Should -BeNullOrEmpty
+    }
+
+    It 'does not throw and returns $null on $null input' {
+        { Get-DatedPstFileName $null -DateStamp '04-07-2026' } | Should -Not -Throw
+        Get-DatedPstFileName $null -DateStamp '04-07-2026' | Should -BeNullOrEmpty
+    }
+
+    It 'defaults to today (dd-MM-yyyy) when no stamp is passed' {
+        Get-DatedPstFileName 'someone@example.org' |
+            Should -Match '(?i)^someone@example\.org\.\d{2}-\d{2}-\d{4}\.pst$'
+    }
+}
+
 Describe 'Get-ExportOutcome' {
     It 'is complete when every source item was copied' {
         $o = Get-ExportOutcome -SourceItems 27341 -CopiedItems 27341
