@@ -313,17 +313,17 @@ public static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, str
     $card.Controls.Add($cardHdr)
 
     $lblUser = New-Object System.Windows.Forms.Label
-    $lblUser.Text = 'Mailbox / username'; $lblUser.ForeColor = $clrText
+    $lblUser.Text = 'Mailbox / username'; $lblUser.ForeColor = $clrText; $lblUser.Font = $fontBold
     $lblUser.Location = New-Object System.Drawing.Point(14, 36); $lblUser.AutoSize = $true
     $card.Controls.Add($lblUser)
-    $txtUser = New-FlatInput 14 56 360
+    $txtUser = New-FlatInput 14 56 340
     $card.Controls.Add($txtUser)
     # Re-evaluate the Export gate (guard #6) on every change, including programmatic
     # prefill from the probe; keeps Export disabled until a usable identity is present.
     $txtUser.Add_TextChanged({ Update-ExportEnabled })
     $btnDetect = New-Object System.Windows.Forms.Button
-    $btnDetect.Text = 'Detect owner'; $btnDetect.Location = New-Object System.Drawing.Point(380, 55)
-    $btnDetect.Size = New-Object System.Drawing.Size(86, 26)
+    $btnDetect.Text = 'Detect owner'; $btnDetect.Location = New-Object System.Drawing.Point(360, 55)
+    $btnDetect.Size = New-Object System.Drawing.Size(100, 26)
     Set-FlatButton $btnDetect $clrCard $clrAccent $clrAccentLt $clrBorder 1
     $card.Controls.Add($btnDetect)
     $btnDetect.Add_Click({ Start-IdentityProbe })
@@ -334,7 +334,7 @@ public static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, str
     $card.Controls.Add($lblUserHint)
 
     $lblOut = New-Object System.Windows.Forms.Label
-    $lblOut.Text = 'Output folder'; $lblOut.ForeColor = $clrText
+    $lblOut.Text = 'Output folder'; $lblOut.ForeColor = $clrText; $lblOut.Font = $fontBold
     $lblOut.Location = New-Object System.Drawing.Point(470, 36); $lblOut.AutoSize = $true
     $card.Controls.Add($lblOut)
     $txtOut = New-FlatInput 470 56 320
