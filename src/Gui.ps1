@@ -212,7 +212,7 @@ public static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, str
     })
     # Placeholder/cue shown in the empty Mailbox field; also the value Test-ValidExportName
     # (guard #6) treats as "not a real name" so it can never become a PST file name.
-    $script:MrMailboxCue = 'owner@company.com'
+    $script:MrMailboxCue = 'example@example.com.br'
 
     # --- Theme (light, flat, modern) ---
     $clrBg       = [System.Drawing.Color]::FromArgb(245, 246, 248)   # window background
@@ -363,21 +363,31 @@ public static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, str
     $form.Controls.Add($lblStatus)
 
     # --- Action buttons ---
+    # Only scan (secondary/outlined): elevated C:\ sweep for existing PST/OST, no export.
+    $btnScan = New-Object System.Windows.Forms.Button
+    $btnScan.Text = 'Only scan'; $btnScan.Location = New-Object System.Drawing.Point(24, 294)
+    $btnScan.Size = New-Object System.Drawing.Size(120, 34)
+    Set-FlatButton $btnScan $clrCard $clrAccent $clrAccentLt $clrBorder 1
+    $form.Controls.Add($btnScan)
+
     $btnScanExport = New-Object System.Windows.Forms.Button
-    $btnScanExport.Text = 'Scan & Export'; $btnScanExport.Location = New-Object System.Drawing.Point(24, 294)
+    # UseMnemonic off so the literal '&' renders; otherwise WinForms eats it as an Alt-key marker
+    # and the caption shows as "Scan  Export".
+    $btnScanExport.UseMnemonic = $false
+    $btnScanExport.Text = 'Scan & Export'; $btnScanExport.Location = New-Object System.Drawing.Point(154, 294)
     $btnScanExport.Size = New-Object System.Drawing.Size(200, 34)
     Set-FlatButton $btnScanExport $clrAccent ([System.Drawing.Color]::White) $clrAccentDk $clrAccent 0
     $form.Controls.Add($btnScanExport)
     $btnScanExport.Enabled = $false   # guard #6: enabled only once Test-ValidExportName passes
 
     $btnCopy = New-Object System.Windows.Forms.Button
-    $btnCopy.Text = 'Copy selected PST'; $btnCopy.Location = New-Object System.Drawing.Point(234, 294)
+    $btnCopy.Text = 'Copy selected PST'; $btnCopy.Location = New-Object System.Drawing.Point(364, 294)
     $btnCopy.Size = New-Object System.Drawing.Size(160, 34)
     Set-FlatButton $btnCopy $clrCard $clrAccent $clrAccentLt $clrBorder 1
     $form.Controls.Add($btnCopy)
 
     $btnCancel = New-Object System.Windows.Forms.Button
-    $btnCancel.Text = 'Cancel scan'; $btnCancel.Location = New-Object System.Drawing.Point(404, 294)
+    $btnCancel.Text = 'Cancel scan'; $btnCancel.Location = New-Object System.Drawing.Point(534, 294)
     $btnCancel.Size = New-Object System.Drawing.Size(120, 34); $btnCancel.Enabled = $false
     Set-FlatButton $btnCancel $clrCard $clrMuted $clrAccentLt $clrBorder 1
     $form.Controls.Add($btnCancel)
@@ -428,7 +438,10 @@ public static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, str
     }
 
     function Set-Busy { param([bool]$Busy, [string]$Style = 'Marquee')
-        $btnScanExport.Enabled = -not $Busy; $btnCopy.Enabled = -not $Busy
+        $btnScan.Enabled = -not $Busy; $btnCopy.Enabled = -not $Busy
+        # Export re-gates on the identity (guard #6) when idle - a bare scan can leave the
+        # Mailbox field empty/at the cue, so it must not blindly re-enable Export.
+        if ($Busy) { $btnScanExport.Enabled = $false } else { Update-ExportEnabled }
         $bar.Style = if ($Busy) { $Style } else { 'Blocks' }
         if (-not $Busy) { $bar.Value = 0 }
     }
@@ -460,6 +473,25 @@ public static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, str
             Stop-ElevatedScan -CancelPath $script:MrScan.Info.CancelPath
             $lblLine.Text = 'Cancelling scan...'
         }
+    })
+
+    # --- Only scan: elevated C:\ sweep for existing PST/OST, no export, no confirmation ---
+    $btnScan.Add_Click({
+        if ($script:MrScan.Active -or $script:MrExport.Active) { return }
+        $roots = @($cfg.ScanRoots); if (-not $roots) { $roots = @('C:\') }
+        Write-Log INFO "Requesting elevated scan of: $($roots -join ', ')"
+        try {
+            $scanInfo = Start-ElevatedScan -ScriptPath $ScriptPath -Roots $roots
+        } catch {
+            [System.Windows.Forms.MessageBox]::Show("Elevation was cancelled or failed:`n$($_.Exception.Message)", 'Only scan', 'OK', 'Warning') | Out-Null
+            return
+        }
+        $list.Items.Clear()
+        $script:MrScan.Info = $scanInfo; $script:MrScan.Active = $true
+        $script:MrScan.StartTime = Get-Date
+        $btnCancel.Enabled = $true
+        Set-Busy $true 'Marquee'
+        $lblLine.Text = 'Scanning C:\ (elevated)...'
     })
 
     # --- Scan & Export: one confirmation, then a fresh dated export + a disk scan run together ---

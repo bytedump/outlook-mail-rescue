@@ -106,11 +106,13 @@ Double-click **`run.bat`** (or run it from a terminal). It launches the GUI non-
    auto-detected from classic Outlook on startup and pre-fills the **Mailbox / username**; press
    **Detect owner** to retry, or type it in manually.
 2. Confirm the **Mailbox / username** (names the output PST) and the **Output folder**.
-3. **Scan & Export** — one button does both: it scans `C:\` for existing `.pst` / `.ost` files *and*
-   runs a fresh full export in the same run, whether or not a PST already exists. Confirm once (owner
+3. **Scan & Export** (blue) does both in one run: it scans `C:\` for existing `.pst` / `.ost` files
+   *and* runs a fresh full export, whether or not a PST already exists. Confirm once (owner
    + mailbox + computer + target PST), approve the single UAC prompt for the scan, and sign in if
    Outlook prompts. From there it is hands-off: it auto-switches new→classic when needed (a revert is
    offered at the end), copies the whole profile into a new Unicode PST, and validates the counts.
+   Use **Only scan** (white) instead to just locate existing `.pst` / `.ost` files on the disk without
+   touching Outlook — one UAC prompt, no export, no confirmation dialog.
 4. The export PST is named **`owner@company.com.DD-MM-YYYY.pst`** — a same-day re-run gets an extra
    time suffix, so an earlier backup is never overwritten. Scanned files are listed below:
    **Copy selected PST** copies an already-existing PST to the output folder; an orphaned OST is
