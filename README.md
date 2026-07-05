@@ -4,7 +4,7 @@
 ![PowerShell](https://img.shields.io/badge/PowerShell-5.1-5391FE?style=flat&logo=powershell&logoColor=white)
 ![Windows](https://img.shields.io/badge/Windows%2010%2F11-0078D6?style=flat&logo=windows&logoColor=white)
 ![Outlook](https://img.shields.io/badge/Classic%20Outlook-COM-0072C6?style=flat&logo=microsoftoutlook&logoColor=white)
-![Tests](https://img.shields.io/badge/Pester-116%20passing-3FB950?style=flat)
+![Tests](https://img.shields.io/badge/Pester-240%20passing-3FB950?style=flat)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 
 A Windows GUI tool for help-desk technicians to preserve a leaving user's mailbox. It
