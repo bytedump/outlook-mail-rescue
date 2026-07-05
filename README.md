@@ -20,8 +20,9 @@ and it reports orphaned `.ost` files that need conversion.
 
 ## 📸 Preview
 
-> _Flat light WinForms GUI — screenshot coming soon._
-<!-- ![GUI](docs/gui.png) -->
+![Outlook Mail Rescue GUI](docs/gui.png)
+
+> _Flat light WinForms GUI. Mailbox and output-folder values shown are placeholders._
 
 ## 📑 Table of Contents
 
