@@ -115,8 +115,10 @@ Double-click **`run.bat`** (or run it from a terminal). It launches the GUI non-
    touching Outlook — one UAC prompt, no export, no confirmation dialog.
 4. The export PST is named **`owner@company.com.DD-MM-YYYY.pst`** — a same-day re-run gets an extra
    time suffix, so an earlier backup is never overwritten. Scanned files are listed below:
-   **Copy selected PST** copies an already-existing PST to the output folder; an orphaned OST is
-   reported only (conversion is on the v2 roadmap).
+   **Copy selected PST** copies an already-existing PST to the output folder — and, like the export,
+   it **never overwrites**: if a file of that name is already there the copy lands as `name (2).pst`,
+   `name (3).pst`, … so an earlier rescued backup is safe. An orphaned OST is reported only
+   (conversion is on the v2 roadmap).
 5. Collect the PST and the run log (under `%LOCALAPPDATA%\OutlookMailRescue\logs`).
 
 ## 🧠 How it works (architecture)
