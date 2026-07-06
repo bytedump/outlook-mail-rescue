@@ -72,6 +72,25 @@ function Test-PathUnderOneDrive {
     return $false
 }
 
+# Pick a file name that does not clash with $Existing, Explorer-style: on collision append
+# ' (2)', ' (3)', ... before the extension. Case-insensitive (Windows). Pure - the caller
+# supplies the existing names so this is unit-testable without touching the disk.
+function Get-UniqueFileName {
+    param([Parameter(Mandatory)][string]$FileName, [string[]]$Existing)
+    $taken = @{}
+    foreach ($e in $Existing) { if ($e) { $taken[$e.ToLowerInvariant()] = $true } }
+    if (-not $taken.ContainsKey($FileName.ToLowerInvariant())) { return $FileName }
+    $base = [System.IO.Path]::GetFileNameWithoutExtension($FileName)
+    $ext  = [System.IO.Path]::GetExtension($FileName)   # includes the leading '.', or ''
+    $n = 2
+    while ($true) {
+        $cand = "$base ($n)$ext"
+        if (-not $taken.ContainsKey($cand.ToLowerInvariant())) { return $cand }
+        $n++
+        if ($n -gt 9999) { return $cand }   # safety cap; never loop forever
+    }
+}
+
 # Collect this machine's OneDrive root folders (guard #12): the OneDrive* environment
 # variables plus each account's UserFolder under HKCU (covers Known-Folder-Move/business +
 # personal). Feeds Test-PathUnderOneDrive so we can warn before writing a multi-GB PST into
@@ -601,12 +620,20 @@ public static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, str
         if (-not $rec -or $rec.Type -ne 'PST') { [System.Windows.Forms.MessageBox]::Show('Select a PST row first.', 'Copy', 'OK', 'Warning') | Out-Null; return }
         $outDir = $txtOut.Text.Trim()
         if (-not (Test-Path $outDir)) { New-Item -ItemType Directory -Force -Path $outDir | Out-Null }
-        $dest = Join-Path $outDir ([System.IO.Path]::GetFileName($rec.Path))
+        $srcLeaf = [System.IO.Path]::GetFileName($rec.Path)
+        $leaf = Get-UniqueFileName -FileName $srcLeaf `
+            -Existing @(Get-ChildItem -LiteralPath $outDir -File -ErrorAction SilentlyContinue |
+                        Select-Object -ExpandProperty Name)
+        $dest = Join-Path $outDir $leaf
         try {
             $form.Cursor = 'WaitCursor'; $lblLine.Text = "Copying $($rec.Path)..."
-            Copy-Item -Path $rec.Path -Destination $dest -Force
+            Copy-Item -LiteralPath $rec.Path -Destination $dest   # dest guaranteed new -> no -Force, no overwrite
             Write-Log INFO "Copied PST to $dest"
-            [System.Windows.Forms.MessageBox]::Show("Copied to:`n$dest", 'Copy', 'OK', 'Information') | Out-Null
+            $renamed = ($leaf -ne $srcLeaf)
+            if ($renamed) { Write-Log WARN "A file named '$srcLeaf' already existed in $outDir; copied as '$leaf' to avoid overwrite." }
+            $msg = "Copied to:`n$dest"
+            if ($renamed) { $msg += "`n`nNote: a file named '$srcLeaf' already existed, so it was copied as '$leaf' (the original was not overwritten)." }
+            [System.Windows.Forms.MessageBox]::Show($msg, 'Copy', 'OK', 'Information') | Out-Null
         } catch {
             Write-Log ERROR "Copy failed: $($_.Exception.Message)"
             [System.Windows.Forms.MessageBox]::Show("Copy failed:`n$($_.Exception.Message)", 'Copy', 'OK', 'Error') | Out-Null

@@ -137,3 +137,37 @@ Describe 'Test-PathUnderOneDrive' {
             Should -BeFalse
     }
 }
+
+Describe 'Get-UniqueFileName' {
+    It 'returns the name unchanged when nothing clashes' {
+        Get-UniqueFileName -FileName 'backup.pst' -Existing @('other.pst') | Should -Be 'backup.pst'
+    }
+
+    It "appends ' (2)' on a single clash" {
+        Get-UniqueFileName -FileName 'backup.pst' -Existing @('backup.pst') | Should -Be 'backup (2).pst'
+    }
+
+    It "bumps to ' (3)' when the name and ' (2)' are both taken" {
+        Get-UniqueFileName -FileName 'name.pst' -Existing @('name.pst', 'name (2).pst') | Should -Be 'name (3).pst'
+    }
+
+    It 'clashes case-insensitively (Windows file names)' {
+        Get-UniqueFileName -FileName 'backup.pst' -Existing @('BACKUP.PST') | Should -Be 'backup (2).pst'
+    }
+
+    It 'preserves a multi-dot base and only treats the last segment as the extension' {
+        Get-UniqueFileName -FileName 'owner@company.com.br.05-07-2026.pst' -Existing @('owner@company.com.br.05-07-2026.pst') |
+            Should -Be 'owner@company.com.br.05-07-2026 (2).pst'
+    }
+
+    It 'handles a name with no extension' {
+        Get-UniqueFileName -FileName 'report' -Existing @('report') | Should -Be 'report (2)'
+    }
+
+    It 'returns the name unchanged for empty or null Existing' -ForEach @(
+        @{ existing = @() }
+        @{ existing = $null }
+    ) {
+        Get-UniqueFileName -FileName 'backup.pst' -Existing $existing | Should -Be 'backup.pst'
+    }
+}
