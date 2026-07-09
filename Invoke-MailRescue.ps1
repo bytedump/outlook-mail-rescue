@@ -26,11 +26,6 @@ param(
     [string]$ScanResultPath,
     [string]$ScanProgressPath,
     [string[]]$ScanRoots = @('C:\'),
-    [switch]$InstallHelper,
-    [string]$InstallResultPath,
-    [string]$InstallProgressPath,
-    [string]$InstallProductId = 'O365ProPlusRetail',
-    [ValidateSet('64', '32')][string]$InstallBitness = '64',
     # Internal guard so the bitness relaunch cannot loop forever.
     [switch]$NoRelaunch
 )
@@ -39,7 +34,7 @@ $ErrorActionPreference = 'Stop'
 
 # --- Load modules (function definitions only; nothing runs on dot-source) ---
 $srcDir = Join-Path $PSScriptRoot 'src'
-foreach ($mod in 'Logging', 'OutlookDetect', 'Scan', 'NewOutlookToggle', 'ProfileSync', 'ComExport', 'InstallClassic', 'Gui') {
+foreach ($mod in 'Logging', 'OutlookDetect', 'Scan', 'NewOutlookToggle', 'ProfileSync', 'ComExport', 'Gui') {
     $p = Join-Path $srcDir "$mod.ps1"
     if (Test-Path $p) { . $p }
 }
@@ -51,14 +46,6 @@ if ($LoadOnly) { return }
 if ($ScanHelper) {
     Initialize-Logging -Tag 'scan' | Out-Null
     Invoke-DiskScanHelper -ResultPath $ScanResultPath -ProgressPath $ScanProgressPath -Roots $ScanRoots
-    return
-}
-
-# --- Elevated install helper mode: fetch ODT, install classic Outlook, write JSON, exit ---
-if ($InstallHelper) {
-    Initialize-Logging -Tag 'install' | Out-Null
-    Invoke-ClassicInstallHelper -ResultPath $InstallResultPath -ProgressPath $InstallProgressPath `
-        -ProductId $InstallProductId -Bitness $InstallBitness
     return
 }
 

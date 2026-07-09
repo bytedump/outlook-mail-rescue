@@ -10,9 +10,6 @@ logs/
 *.pst
 *.ost
 
-# Office Deployment Tool payload (downloaded at runtime, large)
-tools/odt/
-
 # v2 build artifacts
 tools/ost-extract/build/
 tools/ost-extract/dist/

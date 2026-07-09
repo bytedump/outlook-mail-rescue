@@ -180,7 +180,7 @@ Copy `config.example.ps1` to `config.ps1` (gitignored) and edit. Absent → buil
 
 | Path | Description |
 |---|---|
-| `Invoke-MailRescue.ps1` | Single entry point. Modes: default (GUI), `-ScanHelper`, `-InstallHelper`, `-LoadOnly`; bitness self-relaunch. |
+| `Invoke-MailRescue.ps1` | Single entry point. Modes: default (GUI), `-ScanHelper`, `-LoadOnly`; bitness self-relaunch. |
 | `run.bat` | Double-click launcher (non-elevated, `-STA`, `ExecutionPolicy Bypass`). |
 | `src/Gui.ps1` | WinForms GUI (flat light theme), the scan-poll + export-runspace timer. |
 | `src/OutlookDetect.ps1` | Detect new vs classic, paths, bitness, `UseNewOutlook`, MAPI profile. |
@@ -188,14 +188,12 @@ Copy `config.example.ps1` to `config.ps1` (gitignored) and edit. Absent → buil
 | `src/ComExport.ps1` | Full mailbox → PST export via COM, with per-folder count validation. |
 | `src/NewOutlookToggle.ps1` | Switch new→classic with registry backup + revert. |
 | `src/ProfileSync.ps1` | Wait for Cached Exchange Mode sync to settle. |
-| `src/InstallClassic.ps1` | Opt-in classic-Outlook install engine via the Office Deployment Tool. |
 | `src/Logging.ps1` | Structured logging (file + host + GUI queue). |
 | `config.example.ps1` | Configuration template — copy to `config.ps1`. |
 | `tests/unit/` | Pester 5 unit tests for the pure functions. |
 | `PSScriptAnalyzerSettings.psd1` | Lint policy (should report 0 findings). |
 
-**Not versioned** (gitignored): `config.ps1`, `logs/`, `*.log`, `*.pst`, `*.ost`, the downloaded
-ODT payload.
+**Not versioned** (gitignored): `config.ps1`, `logs/`, `*.log`, `*.pst`, `*.ost`.
 
 ## 🧪 Development
 
@@ -217,8 +215,6 @@ machine that only has the new Outlook). Pure helpers are unit-tested.
 
 - **Auto-detect the mailbox owner** — prefill the username from Outlook (`CurrentUser`) so the
   technician does not type it, with a mandatory identity confirmation before export.
-- **GUI for the opt-in classic-Outlook install** — the ODT-based engine (`src/InstallClassic.ps1`
-  + the `-InstallHelper` mode) already works; wiring a notice card + button + progress is next.
 - **Orphaned-OST → PST conversion** using a FOSS reader (`libpff`/`pypff`), email-first, packaged
   as a standalone executable. Best-effort and transparent about fidelity; falls back to
   report-only if conversion fails.
