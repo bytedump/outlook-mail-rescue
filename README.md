@@ -4,7 +4,7 @@
 ![PowerShell](https://img.shields.io/badge/PowerShell-5.1-5391FE?style=flat&logo=powershell&logoColor=white)
 ![Windows](https://img.shields.io/badge/Windows%2010%2F11-0078D6?style=flat&logo=windows&logoColor=white)
 ![Outlook](https://img.shields.io/badge/Classic%20Outlook-COM-0072C6?style=flat&logo=microsoftoutlook&logoColor=white)
-![Tests](https://img.shields.io/badge/Pester-248%20passing-3FB950?style=flat)
+![Tests](https://img.shields.io/badge/Pester-228%20passing-3FB950?style=flat)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 
 A Windows GUI tool for help-desk technicians to preserve a leaving user's mailbox. It
@@ -49,7 +49,8 @@ that are not solvable on the client.
   tolerant of access-denied folders, with live progress and a cancel button.
 - **Full mailbox export to a single Unicode PST** via the classic Outlook COM object model —
   the primary mailbox plus the Online Archive, every folder, **with per-folder item-count
-  validation** (the export is only "complete" when copied counts equal source counts).
+  validation** (a copy with *fewer* items than the source is flagged "incomplete"; a *larger*
+  copy just means new mail arrived mid-export and is reported as a note, not an error).
 - **New Outlook handling** — detects it and (with registry backup + later revert) switches the
   user to classic so the export can run. Honest dead-end if classic is not installed.
 - **OST handling** — an OST tied to a live profile is captured by the full export. An orphaned

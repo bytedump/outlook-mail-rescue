@@ -14,7 +14,7 @@ Profile under test: `owner@company.com` (work M365), Windows login `user`.
 
 ## What CI already proves (no Outlook needed)
 
-`lint + Pester (234) + gitleaks`, green on the PR. Every guard's **logic** is unit-tested
+`lint + Pester (228) + gitleaks`, green on the PR. Every guard's **logic** is unit-tested
 through pure helpers; only the live COM/GUI glue below is unproven.
 
 | Helper (unit-tested) | Guard |
@@ -157,9 +157,12 @@ powershell.exe -NoProfile -File .\Invoke-MailRescue.ps1
   **blocked** with "Export in progress. Wait for it to finish before closing." No file renaming
   (PST keeps its standard name; detaching the PST inside Outlook itself is not interceptable by
   the app, only the app window close is guarded).
-- **#13 degraded title**: result dialog reads "Export complete" only when `CopiedItems ==
-  SourceItems` and nothing stalled/blocked; otherwise "Export incomplete" + reasons
-  (`Get-ExportOutcome` wired into the return as `.Outcome`).
+- **#13 degraded title**: result dialog reads "Export incomplete" + reasons only when
+  `CopiedItems < SourceItems` (items missing) or a stall/block occurred; an equal *or larger*
+  copy is "Export complete" (`Get-ExportOutcome` wired into the return as `.Outcome`).
+  **Revised 2026-07-09:** `CopiedItems > SourceItems` used to be flagged "possible duplication";
+  it is now an informational note, since `CopyTo` copies each subtree once and the extra items
+  are just mail that arrived mid-export. Pure logic, unit-tested — no live re-validation needed.
 
 Pass criteria: full export `28122/28122`, mid-export close blocked with the warning, title
 "Export complete".
