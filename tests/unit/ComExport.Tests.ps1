@@ -124,10 +124,12 @@ Describe 'Get-ExportOutcome' {
         $o.Reasons[0]    | Should -Match 'missing'
     }
 
-    It 'flags a count mismatch in the other direction (possible duplication)' {
+    It 'treats a larger copy as an informational note, not degraded (new mail arrived)' {
         $o = Get-ExportOutcome -SourceItems 50 -CopiedItems 100
-        $o.Degraded   | Should -BeTrue
-        $o.Reasons[0] | Should -Match '(?i)duplicat'
+        $o.Degraded      | Should -BeFalse
+        $o.Title         | Should -Be 'Export complete'
+        $o.Reasons.Count | Should -Be 0
+        $o.Notes[0]      | Should -Match '(?i)larger|new mail'
     }
 
     It 'is incomplete when the mailbox sync stalled' {

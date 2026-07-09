@@ -696,6 +696,7 @@ public static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, str
                     $icon  = if ($outcome -and $outcome.Degraded) { 'Warning' } else { 'Information' }
                     $msg = "$title.`n`nPST: $($res.PstPath)`nStores: $($res.StoresExported)  Folders: $($res.FoldersCopied)`nItems: $($res.CopiedItems)/$($res.SourceItems)"
                     if ($outcome -and $outcome.Reasons -and $outcome.Reasons.Count) { $msg += "`n`nWhy incomplete:`n - " + ($outcome.Reasons -join "`n - ") }
+                    if ($outcome -and $outcome.Notes -and $outcome.Notes.Count) { $msg += "`n`nNote:`n - " + ($outcome.Notes -join "`n - ") }
                     if ($res.Issues -and $res.Issues.Count) { $msg += "`n`nIssues:`n - " + ($res.Issues -join "`n - ") }
                     [System.Windows.Forms.MessageBox]::Show($msg, 'Export', 'OK', $icon) | Out-Null
                 } else {

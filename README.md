@@ -165,6 +165,12 @@ Copy `config.example.ps1` to `config.ps1` (gitignored) and edit. Absent → buil
 - **New Outlook cannot export to PST** and has no COM — switching to classic is required.
 - **`CopyTo` does not carry** folder views, permissions, rules, or categories; mail items and
   folder hierarchy are preserved. Item counts are validated and discrepancies logged.
+- **Mail arriving mid-export is normal.** The copy is validated by item count, and the mailbox is
+  not frozen during the run — if new mail lands while copying, the copy can end up **larger** than
+  the inbox. That is expected (new mail, nothing lost) and is reported as an informational note, not
+  an error. A **smaller** copy is the one worth attention. For a pristine snapshot, optionally set
+  Outlook to **Work Offline** (Send/Receive tab) or disconnect before exporting — optional, never
+  required; it only stops Outlook syncing, not the whole PC.
 - **A PST is unencrypted** and holds the entire mailbox. Store output on an access-controlled
   location; do not leave it on a shared drive or a synced cloud folder.
 - **The output PST name embeds the user's identity** — treat it as personal data per your

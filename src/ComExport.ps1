@@ -106,10 +106,11 @@ function Test-ValidExportName {
 }
 
 # Derive the export outcome from the result counts/flags (guard #13). "Complete" means
-# every source item landed in the PST and nothing was blocked or stalled; anything less
-# is "incomplete" so the technician never offboards a mailbox that was not fully captured.
-# A count mismatch in EITHER direction is degraded: fewer = missing items, more = a
-# possible CopyTo double-copy. Pure.
+# every source item landed in the PST and nothing was blocked or stalled; fewer copied
+# than source is "incomplete" so the technician never offboards a mailbox that was not
+# fully captured. FEWER = missing items (degraded). MORE is expected under a live mailbox:
+# CopyTo copies each subtree once, so extra items are new mail that arrived mid-export, not
+# a duplicate - reported as an informational Note, NOT degraded. Pure.
 function Get-ExportOutcome {
     param(
         [Parameter(Mandatory)][int]$SourceItems,
@@ -118,10 +119,11 @@ function Get-ExportOutcome {
         [bool]$CrossAccountBlocked
     )
     $reasons = @()
+    $notes = @()
     if ($CopiedItems -lt $SourceItems) {
         $reasons += "Copied $CopiedItems of $SourceItems items ($($SourceItems - $CopiedItems) missing)"
     } elseif ($CopiedItems -gt $SourceItems) {
-        $reasons += "Copied $CopiedItems of $SourceItems items ($($CopiedItems - $SourceItems) more than source - possible duplication)"
+        $notes += "Copy is larger than the mailbox ($($CopiedItems - $SourceItems) more items) - new mail likely arrived during export; nothing was lost."
     }
     if ($SyncStalled) {
         $reasons += 'Mailbox sync did not finish (stalled) - recent items may be missing'
@@ -133,6 +135,7 @@ function Get-ExportOutcome {
     return [pscustomobject]@{
         Degraded = $degraded
         Reasons  = $reasons
+        Notes    = $notes
         Title    = if ($degraded) { 'Export incomplete' } else { 'Export complete' }
     }
 }
