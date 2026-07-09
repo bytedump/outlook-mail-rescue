@@ -43,10 +43,6 @@ function Restore-RegistryValue {
     }
 }
 
-function Get-UseNewOutlook {
-    return (Get-RegistryValue $script:UseNewOutlookPath $script:UseNewOutlookName)
-}
-
 # Set UseNewOutlook and return the backup for later revert. -Path overridable for tests.
 function Set-UseNewOutlook {
     param(

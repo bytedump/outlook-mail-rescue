@@ -39,15 +39,3 @@ Describe 'Set-UseNewOutlook / Restore-RegistryValue' {
         (Get-RegistryValue $script:TestKey 'UseNewOutlook') | Should -BeNullOrEmpty
     }
 }
-
-Describe 'Get-UseNewOutlook' {
-    It 'returns the value read from the UseNewOutlook preference' {
-        Mock Get-RegistryValue { 0 } -ParameterFilter { $Name -eq 'UseNewOutlook' }
-        Get-UseNewOutlook | Should -Be 0
-        Should -Invoke Get-RegistryValue -Times 1 -Exactly
-    }
-    It 'returns $null when the preference is absent' {
-        Mock Get-RegistryValue { $null }
-        Get-UseNewOutlook | Should -BeNullOrEmpty
-    }
-}

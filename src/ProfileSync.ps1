@@ -26,11 +26,6 @@ function Test-SyncStabilized {
     return $true
 }
 
-function Test-OutlookProfileExists {
-    $info = Get-OutlookInfo
-    return $info.HasMapiProfile
-}
-
 # Sum the item counts of the primary Exchange mailbox's top-level folders. A cheap,
 # decent signal for "is sync still pulling items". Returns 0 if no primary store.
 function Get-PrimaryMailboxSampleCount {

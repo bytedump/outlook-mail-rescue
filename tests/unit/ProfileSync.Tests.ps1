@@ -23,14 +23,3 @@ Describe 'Test-SyncStabilized' {
         Test-SyncStabilized -Samples @() -StableReadings 3 | Should -BeFalse
     }
 }
-
-Describe 'Test-OutlookProfileExists' {
-    It 'is true when Get-OutlookInfo reports a MAPI profile' {
-        Mock Get-OutlookInfo { [pscustomobject]@{ HasMapiProfile = $true } }
-        Test-OutlookProfileExists | Should -BeTrue
-    }
-    It 'is false when no MAPI profile exists' {
-        Mock Get-OutlookInfo { [pscustomobject]@{ HasMapiProfile = $false } }
-        Test-OutlookProfileExists | Should -BeFalse
-    }
-}
