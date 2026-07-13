@@ -33,6 +33,7 @@ and it reports orphaned `.ost` files that need conversion.
 - [How it works (architecture)](#-how-it-works-architecture)
 - [Configuration](#-configuration)
 - [Caveats & limitations](#-caveats--limitations)
+- [Troubleshooting](#-troubleshooting)
 - [Repository files](#-repository-files)
 - [Development](#-development)
 - [Roadmap](#-roadmap)
@@ -176,6 +177,38 @@ Copy `config.example.ps1` to `config.ps1` (gitignored) and edit. Absent → buil
   location; do not leave it on a shared drive or a synced cloud folder.
 - **The output PST name embeds the user's identity** — treat it as personal data per your
   retention policy.
+
+## 🛟 Troubleshooting
+
+### SmartScreen blocks `run.bat` ("Windows protected your PC")
+
+**Symptom.** Double-clicking `run.bat` pops the blue SmartScreen dialog instead of the
+GUI. Happens when the repo was downloaded as a **ZIP** (GitHub *Code ▸ Download ZIP*)
+— whether extracted to a local disk or to a network share.
+
+**Why.** A ZIP downloaded from the internet is stamped with the **Mark of the Web**
+(a `Zone.Identifier` NTFS stream, zone = Internet). Windows propagates that mark to
+every file it extracts, and network shares preserve it — so on a shared folder the
+block hits **every** technician who launches from it. Files obtained with `git clone`
+never carry the mark, which is why the block never appears on a cloned copy.
+
+**Fixes, safest first** — do **not** disable SmartScreen; the mark is doing its job,
+it just doesn't know this tool:
+
+1. **Prefer `git clone`** (the documented install method) — cloned files are never
+   marked.
+2. **Unblock the ZIP _before_ extracting** — right-click the `.zip` ▸ Properties ▸
+   check **Unblock** ▸ OK, then extract. Everything comes out clean.
+3. **Already extracted** (e.g. sitting on the network share) — remove the mark from
+   every file once; fixes it for everyone using that folder:
+
+   ```powershell
+   Get-ChildItem -Path '\\server\share\outlook-mail-rescue' -Recurse | Unblock-File
+   ```
+
+4. **One-off escape hatch** — SmartScreen dialog ▸ *More info* ▸ *Run anyway*. This
+   is per file, per machine; the folder stays marked for the next tech, so prefer
+   fix 3.
 
 ## 🗂️ Repository files
 
